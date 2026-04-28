@@ -90,11 +90,36 @@ textarea.fc{resize:vertical;min-height:80px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:60px 20px;color:var(--muted)}
 .empty .ico{font-size:4rem;margin-bottom:16px}
+.pwd-container{position:fixed;inset:0;background:linear-gradient(135deg,#0a0a1a,#1a1a3e,#0a1628);display:flex;align-items:center;justify-content:center;z-index:5000}
+.pwd-box{background:rgba(22,33,62,.95);border:1px solid var(--bdr);border-radius:16px;padding:40px;max-width:400px;width:90%;text-align:center}
+.pwd-title{font-size:1.5rem;margin-bottom:20px;color:var(--txt)}
+.pwd-input{width:100%;background:var(--inp);border:1px solid var(--bdr);border-radius:8px;padding:12px 16px;color:var(--txt);font-size:1rem;margin-bottom:16px;text-align:center;letter-spacing:2px;outline:none}
+.pwd-input:focus{border-color:var(--p)}
+.pwd-btn{background:var(--p);color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:1rem;cursor:pointer;transition:background .2s;font-weight:600}
+.pwd-btn:hover{background:var(--pd)}
+.pwd-error{color:var(--err);margin-top:12px;font-size:.9rem;min-height:20px}
 @media(max-width:600px){.fr{grid-template-columns:1fr}.cdates{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+
+<!-- Loading -->
 <div class="ldo hidden" id="ldo"><div class="spin"></div></div>
+
+<!-- Password -->
+<div class="pwd-container" id="pwd-container">
+  <div class="pwd-box">
+    <div class="logo" style="font-size:2rem;margin-bottom:20px;">&#x1F420; AquaManager</div>
+    <h2 class="pwd-title">Accès protégé</h2>
+    <input type="password" class="pwd-input" id="pwd-input" placeholder="Mot de passe" autocomplete="off">
+    <br>
+    <button class="pwd-btn" id="pwd-btn">Valider</button>
+    <div class="pwd-error" id="pwd-error"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none">
 <header>
   <div class="logo">&#x1F420; AquaManager</div>
   <button class="btn btn-p" onclick="openModal()">&#x2795; Ajouter</button>
@@ -102,7 +127,7 @@ textarea.fc{resize:vertical;min-height:80px}
 <div class="dash">
   <div class="sc"><div class="sn" id="st">0</div><div class="sl">Total</div></div>
   <div class="sc urg"><div class="sn" id="su">0</div><div class="sl">Urgents</div></div>
-  <div class="sc wrn"><div class="sn" id="sw">0</div><div class="sl">Bientot</div></div>
+  <div class="sc wrn"><div class="sn" id="sw">0</div><div class="sl">Bientôt</div></div>
   <div class="sc ok"><div class="sn" id="sok">0</div><div class="sl">OK</div></div>
 </div>
 <div class="toolbar">
@@ -110,11 +135,13 @@ textarea.fc{resize:vertical;min-height:80px}
   <select id="filter" onchange="render()">
     <option value="all">Tous</option>
     <option value="urgent">Urgents</option>
-    <option value="warning">Bientot</option>
+    <option value="warning">Bientôt</option>
     <option value="ok">OK</option>
   </select>
 </div>
 <div class="grid" id="grid"></div>
+
+<!-- Form modal -->
 <div class="ov hidden" id="form-ov">
   <div class="modal">
     <div class="mh">
@@ -131,14 +158,14 @@ textarea.fc{resize:vertical;min-height:80px}
       <div class="fg"><label class="fl">Description</label><textarea class="fc" id="fd" placeholder="Poissons, plantes..."></textarea></div>
       <div class="fr">
         <div class="fg"><label class="fl">Dernier changement</label><input type="date" class="fc" id="flc" oninput="calcNext()"></div>
-        <div class="fg"><label class="fl">Prochain changement</label><input type="date" class="fc" id="fnext" readonly style="opacity:.7"><div class="fh">Calcule automatiquement</div></div>
+        <div class="fg"><label class="fl">Prochain changement</label><input type="date" class="fc" id="fnext" readonly style="opacity:.7"><div class="fh">Calculé automatiquement</div></div>
       </div>
       <div class="fg">
         <label class="fl">Photos</label>
         <div class="uz" id="uz">
           <input type="file" id="finput" accept="image/*" multiple onchange="handleFiles(this.files)">
-          <div>Cliquez ou glissez des photos ici</div>
-          <div style="font-size:.8rem;color:var(--muted);margin-top:4px">JPG, PNG, GIF, WebP - max 10 Mo</div>
+          <div>&#x1F4F8; Cliquez ou glissez des photos ici</div>
+          <div style="font-size:.8rem;color:var(--muted);margin-top:4px">JPG, PNG, GIF, WebP</div>
         </div>
         <div class="ppg" id="ppg"></div>
       </div>
@@ -149,16 +176,20 @@ textarea.fc{resize:vertical;min-height:80px}
     </div>
   </div>
 </div>
+
+<!-- Confirm delete modal -->
 <div class="ov hidden" id="conf-ov">
   <div class="cdlg">
-    <h3>Confirmer la suppression</h3>
-    <p id="conf-txt"></p>
+    <h3>&#x26A0;&#xFE0F; Confirmer la suppression</h3>
+    <p id="conf-txt" style="margin-top:10px"></p>
     <div class="ca">
       <button class="btn btn-sec" onclick="closeConf()">Annuler</button>
       <button class="btn btn-d" id="conf-ok">Supprimer</button>
     </div>
   </div>
 </div>
+
+<!-- Lightbox -->
 <div class="lb hidden" id="lb">
   <button class="lbc" onclick="closeLb()">&#x00D7;</button>
   <img id="lbi" src="" alt="">
@@ -168,238 +199,367 @@ textarea.fc{resize:vertical;min-height:80px}
   </div>
   <div class="lbcnt" id="lbcnt"></div>
 </div>
-<div class="tc" id="tc"></div>
-<script>
-const API='/api';
-let data=[],editPhotos=[],newFiles=[],cardIdx={};
-let lbPhotos=[],lbIdx=0;
 
-document.addEventListener('DOMContentLoaded',function(){
-  load();
-  setInterval(load,60000);
-  var uz=document.getElementById('uz');
-  uz.addEventListener('dragover',function(e){e.preventDefault();uz.classList.add('drag-over')});
-  uz.addEventListener('dragleave',function(){uz.classList.remove('drag-over')});
-  uz.addEventListener('drop',function(e){e.preventDefault();uz.classList.remove('drag-over');handleFiles(e.dataTransfer.files)});
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'){closeLb();closeModal();}
-    if(e.key==='ArrowLeft')navLb(-1);
-    if(e.key==='ArrowRight')navLb(1);
-  });
+<!-- Toasts -->
+<div class="tc" id="tc"></div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+var CORRECT_PASSWORD = 'JMCNOAM';
+var API = '/api';
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+var data = [];
+var editPhotos = [];
+var newFiles = [];
+var cardIdx = {};
+var lbPhotos = [];
+var lbIdx = 0;
+var pendingDeleteId = null;
+
+// ─── PASSWORD ─────────────────────────────────────────────────────────────────
+function checkPassword() {
+  var input = document.getElementById('pwd-input');
+  var errorEl = document.getElementById('pwd-error');
+  var val = input.value;
+
+  if (val === CORRECT_PASSWORD) {
+    document.getElementById('pwd-container').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    errorEl.textContent = 'Mot de passe incorrect';
+    input.value = '';
+    input.focus();
+    setTimeout(function() { errorEl.textContent = ''; }, 2000);
+  }
+}
+
+document.getElementById('pwd-btn').addEventListener('click', checkPassword);
+document.getElementById('pwd-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') checkPassword();
 });
 
-function showLoad(v){document.getElementById('ldo').classList.toggle('hidden',!v);}
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function initApp() {
+  var uz = document.getElementById('uz');
+  uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.classList.add('drag-over'); });
+  uz.addEventListener('dragleave', function() { uz.classList.remove('drag-over'); });
+  uz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uz.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
 
-function apiFetch(url,opts){
-  opts=opts||{};
-  return fetch(API+url,opts).then(function(r){
-    if(!r.ok)return r.json().then(function(e){throw new Error(e.error||'Erreur')});
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeLb(); closeModal(); closeConf(); }
+    if (e.key === 'ArrowLeft') navLb(-1);
+    if (e.key === 'ArrowRight') navLb(1);
+  });
+
+  load();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function showLoad(v) {
+  document.getElementById('ldo').classList.toggle('hidden', !v);
+}
+
+function toast(msg, type) {
+  var tc = document.getElementById('tc');
+  var t = document.createElement('div');
+  t.className = 'toast ' + (type || 'success');
+  t.textContent = msg;
+  tc.appendChild(t);
+  setTimeout(function() { t.remove(); }, 3500);
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function fmt(d) {
+  if (!d) return '-';
+  var p = d.split('-');
+  return p[2] + '/' + p[1] + '/' + p[0];
+}
+
+function apiFetch(url, opts) {
+  opts = opts || {};
+  return fetch(API + url, opts).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Erreur serveur'); });
     return r.json();
   });
 }
 
-function load(){
-  return apiFetch('/aquariums').then(function(d){data=d;dash();render();}).catch(function(e){toast('Erreur de connexion','error');});
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+function load() {
+  showLoad(true);
+  return apiFetch('/aquariums')
+    .then(function(d) { data = d; dash(); render(); })
+    .catch(function(e) { toast('Erreur de connexion : ' + e.message, 'error'); })
+    .finally(function() { showLoad(false); });
 }
 
-function status(a){
-  if(!a.next_date)return 'ok';
-  var d=Math.ceil((new Date(a.next_date)-new Date())/86400000);
-  return d<0?'urgent':d<=3?'warning':'ok';
+function status(a) {
+  if (!a.next_date) return 'ok';
+  var d = Math.ceil((new Date(a.next_date) - new Date()) / 86400000);
+  return d < 0 ? 'urgent' : d <= 3 ? 'warning' : 'ok';
 }
 
-function daysText(a){
-  if(!a.next_date)return 'Pas de date';
-  var d=Math.ceil((new Date(a.next_date)-new Date())/86400000);
-  if(d<0)return 'En retard de '+Math.abs(d)+'j';
-  if(d===0)return "Aujourd'hui !";
-  if(d===1)return 'Demain';
-  return 'Dans '+d+' jours';
+function daysText(a) {
+  if (!a.next_date) return 'Pas de date';
+  var d = Math.ceil((new Date(a.next_date) - new Date()) / 86400000);
+  if (d < 0) return 'En retard de ' + Math.abs(d) + 'j';
+  if (d === 0) return "Aujourd'hui !";
+  if (d === 1) return 'Demain';
+  return 'Dans ' + d + ' jours';
 }
 
-function dash(){
-  var s={urgent:0,warning:0,ok:0};
-  data.forEach(function(a){s[status(a)]++;});
-  document.getElementById('st').textContent=data.length;
-  document.getElementById('su').textContent=s.urgent;
-  document.getElementById('sw').textContent=s.warning;
-  document.getElementById('sok').textContent=s.ok;
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function dash() {
+  var s = { urgent: 0, warning: 0, ok: 0 };
+  data.forEach(function(a) { s[status(a)]++; });
+  document.getElementById('st').textContent = data.length;
+  document.getElementById('su').textContent = s.urgent;
+  document.getElementById('sw').textContent = s.warning;
+  document.getElementById('sok').textContent = s.ok;
 }
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmt(d){if(!d)return '-';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  var q = document.getElementById('search').value.toLowerCase();
+  var f = document.getElementById('filter').value;
+  var grid = document.getElementById('grid');
+  var icons = { urgent: '&#x1F6A8;', warning: '&#x26A0;&#xFE0F;', ok: '&#x2705;' };
 
-function render(){
-  var q=document.getElementById('search').value.toLowerCase();
-  var f=document.getElementById('filter').value;
-  var grid=document.getElementById('grid');
-  var list=data.filter(function(a){
-    return(a.name.toLowerCase().indexOf(q)>=0||(a.description||'').toLowerCase().indexOf(q)>=0)&&(f==='all'||status(a)===f);
+  var list = data.filter(function(a) {
+    return (a.name.toLowerCase().indexOf(q) >= 0 || (a.description || '').toLowerCase().indexOf(q) >= 0)
+      && (f === 'all' || status(a) === f);
   });
-  if(!list.length){
-    grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="ico">&#x1F420;</div><h3>'+(data.length?'Aucun resultat':'Aucun aquarium')+'</h3></div>';
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="ico">&#x1F420;</div><h3>' + (data.length ? 'Aucun résultat' : 'Aucun aquarium') + '</h3></div>';
     return;
   }
-  var icons={urgent:'&#x1F6A8;',warning:'&#x26A0;&#xFE0F;',ok:'&#x2705;'};
-  grid.innerHTML=list.map(function(a){
-    var st=status(a),ph=a.photos||[],idx=cardIdx[a.id]||0;
-    var phStr=encodeURIComponent(JSON.stringify(ph));
-    return '<div class="card">'+
-      '<div class="csb '+st+'"></div>'+
-      '<div class="pz" onclick="openLbE(\''+phStr+'\','+idx+')">'+
-        (ph.length?'<img src="'+ph[idx].url+'" alt="" loading="lazy">'+
-          (ph.length>1?'<div class="pnav"><button onclick="event.stopPropagation();navCard(\''+a.id+'\',-1,'+ph.length+')">&#x276E;</button><button onclick="event.stopPropagation();navCard(\''+a.id+'\',1,'+ph.length+')">&#x276F;</button></div><div class="pcnt">'+(idx+1)+'/'+ph.length+'</div>':'')
-        :'<div class="nophoto">&#x1F420;</div>')+
-      '</div>'+
-      '<div class="cb">'+
-        '<div class="ctr"><div class="ct">'+esc(a.name)+'</div>'+(a.litrage?'<span class="cl">'+a.litrage+'L</span>':'')+' </div>'+
-        (a.description?'<div class="cd">'+esc(a.description)+'</div>':'')+
-        '<div class="cdates">'+
-          '<div class="di"><div class="dl">Dernier changement</div><div class="dv">'+fmt(a.last_change)+'</div></div>'+
-          '<div class="di"><div class="dl">Prochain changement</div><div class="dv">'+fmt(a.next_date)+'</div></div>'+
-        '</div>'+
-        '<div class="badge '+st+'">'+icons[st]+' '+daysText(a)+'</div>'+
-        '<div class="actions">'+
-          '<button class="btn btn-ok btn-sm" onclick="quickChange(\''+a.id+'\')">Change !</button>'+
-          '<button class="btn btn-w btn-sm" onclick="editAq(\''+a.id+'\')">Editer</button>'+
-          '<button class="btn btn-d btn-sm" onclick="confDel(\''+a.id+'\',\''+esc(a.name)+'\')">Suppr.</button>'+
-        '</div>'+
-      '</div>'+
+
+  grid.innerHTML = list.map(function(a) {
+    var st = status(a);
+    var ph = a.photos || [];
+    var idx = cardIdx[a.id] || 0;
+    if (idx >= ph.length) idx = 0;
+    var phEnc = encodeURIComponent(JSON.stringify(ph));
+
+    return '<div class="card">' +
+      '<div class="csb ' + st + '"></div>' +
+      '<div class="pz" onclick="openLb(\'' + phEnc + '\',' + idx + ')">' +
+        (ph.length
+          ? '<img src="' + esc(ph[idx].url) + '" alt="" loading="lazy">' +
+            (ph.length > 1
+              ? '<div class="pnav">' +
+                  '<button onclick="event.stopPropagation();navCard(\'' + a.id + '\',-1,' + ph.length + ')">&#x276E;</button>' +
+                  '<button onclick="event.stopPropagation();navCard(\'' + a.id + '\',1,' + ph.length + ')">&#x276F;</button>' +
+                '</div>' +
+                '<div class="pcnt">' + (idx + 1) + '/' + ph.length + '</div>'
+              : '')
+          : '<div class="nophoto">&#x1F420;</div>') +
+      '</div>' +
+      '<div class="cb">' +
+        '<div class="ctr">' +
+          '<div class="ct">' + esc(a.name) + '</div>' +
+          (a.litrage ? '<span class="cl">' + a.litrage + 'L</span>' : '') +
+        '</div>' +
+        (a.description ? '<div class="cd">' + esc(a.description) + '</div>' : '') +
+        '<div class="cdates">' +
+          '<div class="di"><div class="dl">Dernier changement</div><div class="dv">' + fmt(a.last_change) + '</div></div>' +
+          '<div class="di"><div class="dl">Prochain changement</div><div class="dv">' + fmt(a.next_date) + '</div></div>' +
+        '</div>' +
+        '<div class="badge ' + st + '">' + icons[st] + ' ' + daysText(a) + '</div>' +
+        '<div class="actions">' +
+          '<button class="btn btn-ok btn-sm" onclick="quickChange(\'' + a.id + '\')">&#x1F4A7; Changé !</button>' +
+          '<button class="btn btn-w btn-sm" onclick="editAq(\'' + a.id + '\')">&#x270F;&#xFE0F; Éditer</button>' +
+          '<button class="btn btn-d btn-sm" onclick="confDel(\'' + a.id + '\',\'' + esc(a.name) + '\')">&#x1F5D1; Suppr.</button>' +
+        '</div>' +
+      '</div>' +
     '</div>';
   }).join('');
 }
 
-function navCard(id,dir,total){cardIdx[id]=((cardIdx[id]||0)+dir+total)%total;render();}
+// ─── CARD NAV ─────────────────────────────────────────────────────────────────
+function navCard(id, dir, total) {
+  cardIdx[id] = ((cardIdx[id] || 0) + dir + total) % total;
+  render();
+}
 
-function openLbE(phEnc,idx){
-  var ph=JSON.parse(decodeURIComponent(phEnc));
-  if(!ph||!ph.length)return;
-  lbPhotos=ph;lbIdx=idx||0;
-  document.getElementById('lbi').src=lbPhotos[lbIdx].url;
-  document.getElementById('lbcnt').textContent=(lbIdx+1)+'/'+lbPhotos.length;
+// ─── LIGHTBOX ─────────────────────────────────────────────────────────────────
+function openLb(phEnc, idx) {
+  var ph = JSON.parse(decodeURIComponent(phEnc));
+  if (!ph || !ph.length) return;
+  lbPhotos = ph;
+  lbIdx = idx || 0;
+  document.getElementById('lbi').src = lbPhotos[lbIdx].url;
+  document.getElementById('lbcnt').textContent = (lbIdx + 1) + '/' + lbPhotos.length;
   document.getElementById('lb').classList.remove('hidden');
 }
-function closeLb(){document.getElementById('lb').classList.add('hidden');}
-function navLb(d){
-  if(!lbPhotos.length)return;
-  lbIdx=(lbIdx+d+lbPhotos.length)%lbPhotos.length;
-  document.getElementById('lbi').src=lbPhotos[lbIdx].url;
-  document.getElementById('lbcnt').textContent=(lbIdx+1)+'/'+lbPhotos.length;
+
+function closeLb() {
+  document.getElementById('lb').classList.add('hidden');
 }
 
-function openModal(){
-  document.getElementById('mtitle').textContent='Ajouter un aquarium';
-  document.getElementById('eid').value='';
-  document.getElementById('fn').value='';
-  document.getElementById('flt').value='';
-  document.getElementById('fi').value='';
-  document.getElementById('fd').value='';
-  document.getElementById('flc').value='';
-  document.getElementById('fnext').value='';
-  editPhotos=[];newFiles=[];
+function navLb(d) {
+  if (!lbPhotos.length) return;
+  lbIdx = (lbIdx + d + lbPhotos.length) % lbPhotos.length;
+  document.getElementById('lbi').src = lbPhotos[lbIdx].url;
+  document.getElementById('lbcnt').textContent = (lbIdx + 1) + '/' + lbPhotos.length;
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('mtitle').textContent = 'Ajouter un aquarium';
+  document.getElementById('eid').value = '';
+  document.getElementById('fn').value = '';
+  document.getElementById('flt').value = '';
+  document.getElementById('fi').value = '';
+  document.getElementById('fd').value = '';
+  document.getElementById('flc').value = '';
+  document.getElementById('fnext').value = '';
+  editPhotos = [];
+  newFiles = [];
+  renderPrev();
+  document.getElementById('form-ov').classList.remove('hidden');
+  setTimeout(function() { document.getElementById('fn').focus(); }, 100);
+}
+
+function closeModal() {
+  document.getElementById('form-ov').classList.add('hidden');
+}
+
+function editAq(id) {
+  var a = data.find(function(x) { return x.id === id; });
+  if (!a) return;
+  document.getElementById('mtitle').textContent = 'Modifier ' + a.name;
+  document.getElementById('eid').value = a.id;
+  document.getElementById('fn').value = a.name || '';
+  document.getElementById('flt').value = a.litrage || '';
+  document.getElementById('fi').value = a.interval || '';
+  document.getElementById('fd').value = a.description || '';
+  document.getElementById('flc').value = a.last_change || '';
+  document.getElementById('fnext').value = a.next_date || '';
+  editPhotos = JSON.parse(JSON.stringify(a.photos || []));
+  newFiles = [];
   renderPrev();
   document.getElementById('form-ov').classList.remove('hidden');
 }
-function closeModal(){document.getElementById('form-ov').classList.add('hidden');}
 
-function editAq(id){
-  var a=data.find(function(x){return x.id===id;});
-  if(!a)return;
-  document.getElementById('mtitle').textContent='Modifier '+a.name;
-  document.getElementById('eid').value=a.id;
-  document.getElementById('fn').value=a.name||'';
-  document.getElementById('flt').value=a.litrage||'';
-  document.getElementById('fi').value=a.interval||'';
-  document.getElementById('fd').value=a.description||'';
-  document.getElementById('flc').value=a.last_change||'';
-  document.getElementById('fnext').value=a.next_date||'';
-  editPhotos=JSON.parse(JSON.stringify(a.photos||[]));
-  newFiles=[];
-  renderPrev();
-  document.getElementById('form-ov').classList.remove('hidden');
+function calcNext() {
+  var lc = document.getElementById('flc').value;
+  var iv = document.getElementById('fi').value;
+  if (!lc || !iv) { document.getElementById('fnext').value = ''; return; }
+  var d = new Date(lc);
+  d.setDate(d.getDate() + parseInt(iv));
+  document.getElementById('fnext').value = d.toISOString().split('T')[0];
 }
 
-function calcNext(){
-  var lc=document.getElementById('flc').value;
-  var iv=document.getElementById('fi').value;
-  if(!lc||!iv){document.getElementById('fnext').value='';return;}
-  var d=new Date(lc);
-  d.setDate(d.getDate()+parseInt(iv));
-  document.getElementById('fnext').value=d.toISOString().split('T')[0];
-}
-
-function handleFiles(files){
-  Array.from(files).forEach(function(f){
-    if(newFiles.length+editPhotos.length>=20){toast('Maximum 20 photos','error');return;}
+// ─── PHOTOS ───────────────────────────────────────────────────────────────────
+function handleFiles(files) {
+  Array.from(files).forEach(function(f) {
+    if (newFiles.length + editPhotos.length >= 20) { toast('Maximum 20 photos', 'error'); return; }
     newFiles.push(f);
   });
   renderPrev();
 }
 
-function renderPrev(){
-  var g=document.getElementById('ppg');
-  var existing=editPhotos.map(function(p,i){
-    return '<div class="ppi"><img src="'+p.url+'" alt=""><button class="ppr" onclick="delExisting('+i+')">x</button></div>';
+function renderPrev() {
+  var g = document.getElementById('ppg');
+  var html = editPhotos.map(function(p, i) {
+    return '<div class="ppi"><img src="' + p.url + '" alt=""><button class="ppr" onclick="delExisting(' + i + ')">&#x00D7;</button></div>';
   }).join('');
-  var news=newFiles.map(function(f,i){
-    var url=URL.createObjectURL(f);
-    return '<div class="ppi"><img src="'+url+'" alt=""><button class="ppr" onclick="delNew('+i+')">x</button></div>';
+  html += newFiles.map(function(f, i) {
+    return '<div class="ppi"><img src="' + URL.createObjectURL(f) + '" alt=""><button class="ppr" onclick="delNew(' + i + ')">&#x00D7;</button></div>';
   }).join('');
-  g.innerHTML=existing+news;
+  g.innerHTML = html;
 }
 
-function delExisting(i){editPhotos.splice(i,1);renderPrev();}
-function delNew(i){newFiles.splice(i,1);renderPrev();}
+function delExisting(i) { editPhotos.splice(i, 1); renderPrev(); }
+function delNew(i) { newFiles.splice(i, 1); renderPrev(); }
 
-function save(){
-  var name=document.getElementById('fn').value.trim();
-  if(!name){toast('Le nom est requis','error');return;}
-  var id=document.getElementById('eid').value;
-  var fd=new FormData();
-  fd.append('name',name);
-  fd.append('litrage',document.getElementById('flt').value||'');
-  fd.append('description',document.getElementById('fd').value||'');
-  fd.append('last_change',document.getElementById('flc').value||'');
-  fd.append('interval',document.getElementById('fi').value||'');
-  if(id)fd.append('existingPhotos',JSON.stringify(editPhotos.map(function(p){return p.id;})));
-  newFiles.forEach(function(f){fd.append('photos',f);});
+// ─── SAVE ─────────────────────────────────────────────────────────────────────
+function save() {
+  var name = document.getElementById('fn').value.trim();
+  if (!name) { toast('Le nom est requis', 'error'); return; }
+
+  var id = document.getElementById('eid').value;
+  var fd = new FormData();
+  fd.append('name', name);
+  fd.append('litrage', document.getElementById('flt').value || '');
+  fd.append('description', document.getElementById('fd').value || '');
+  fd.append('last_change', document.getElementById('flc').value || '');
+  fd.append('interval', document.getElementById('fi').value || '');
+  if (id) fd.append('existingPhotos', JSON.stringify(editPhotos.map(function(p) { return p.id; })));
+  newFiles.forEach(function(f) { fd.append('photos', f); });
+
   showLoad(true);
-  var url=id?('/aquariums/'+id):'/aquariums';
-  var method=id?'PUT':'POST';
-  apiFetch(url,{method:method,body:fd}).then(function(){
-    toast(id?'Aquarium modifie':'Aquarium ajoute','success');
-    closeModal();return load();
-  }).catch(function(e){toast(e.message,'error');}).finally(function(){showLoad(false);});
+  var url = id ? '/aquariums/' + id : '/aquariums';
+  var method = id ? 'PUT' : 'POST';
+
+  apiFetch(url, { method: method, body: fd })
+    .then(function() {
+      closeModal();
+      toast(id ? 'Aquarium modifié !' : 'Aquarium ajouté !', 'success');
+      return load();
+    })
+    .catch(function(e) { toast('Erreur : ' + e.message, 'error'); })
+    .finally(function() { showLoad(false); });
 }
 
-function quickChange(id){
+// ─── QUICK CHANGE ─────────────────────────────────────────────────────────────
+function quickChange(id) {
+  var a = data.find(function(x) { return x.id === id; });
+  if (!a) return;
+
+  var today = new Date().toISOString().split('T')[0];
+  var fd = new FormData();
+  fd.append('name', a.name);
+  fd.append('litrage', a.litrage || '');
+  fd.append('description', a.description || '');
+  fd.append('last_change', today);
+  fd.append('interval', a.interval || '');
+  fd.append('existingPhotos', JSON.stringify((a.photos || []).map(function(p) { return p.id; })));
+
   showLoad(true);
-  apiFetch('/aquariums/'+id+'/change',{method:'PATCH'}).then(function(){
-    toast('Changement enregistre !','success');return load();
-  }).catch(function(e){toast(e.message,'error');}).finally(function(){showLoad(false);});
+  apiFetch('/aquariums/' + id, { method: 'PUT', body: fd })
+    .then(function() {
+      toast('Changement enregistré !', 'success');
+      return load();
+    })
+    .catch(function(e) { toast('Erreur : ' + e.message, 'error'); })
+    .finally(function() { showLoad(false); });
 }
 
-function confDel(id,name){
-  document.getElementById('conf-txt').textContent='Supprimer "'+name+'" et toutes ses photos ?';
-  document.getElementById('conf-ok').onclick=function(){closeConf();doDelete(id);};
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+function confDel(id, name) {
+  pendingDeleteId = id;
+  document.getElementById('conf-txt').textContent = 'Supprimer "' + name + '" ?';
+  document.getElementById('conf-ok').onclick = function() { doDelete(id); };
   document.getElementById('conf-ov').classList.remove('hidden');
 }
-function closeConf(){document.getElementById('conf-ov').classList.add('hidden');}
 
-function doDelete(id){
-  showLoad(true);
-  apiFetch('/aquariums/'+id,{method:'DELETE'}).then(function(){
-    toast('Aquarium supprime','success');return load();
-  }).catch(function(e){toast(e.message,'error');}).finally(function(){showLoad(false);});
+function closeConf() {
+  document.getElementById('conf-ov').classList.add('hidden');
+  pendingDeleteId = null;
 }
 
-function toast(msg,type){
-  type=type||'success';
-  var t=document.createElement('div');
-  t.className='toast '+(type==='error'?'error':'success');
-  t.textContent=(type==='error'?'Erreur: ':'')+msg;
-  document.getElementById('tc').appendChild(t);
-  setTimeout(function(){t.remove();},4000);
+function doDelete(id) {
+  closeConf();
+  showLoad(true);
+  apiFetch('/aquariums/' + id, { method: 'DELETE' })
+    .then(function() {
+      toast('Aquarium supprimé', 'success');
+      return load();
+    })
+    .catch(function(e) { toast('Erreur : ' + e.message, 'error'); })
+    .finally(function() { showLoad(false); });
 }
 </script>
 </body>
