@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐠 AquaManager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0a1628;color:#e0f0ff;min-height:100vh}
+header{background:linear-gradient(135deg,#0d3b6e,#1a6b9a);padding:16px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,0.4)}
+header h1{font-size:1.4rem;color:#fff}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;font-weight:600;transition:all 0.2s}
+.btn-primary{background:#1a6b9a;color:#fff}.btn-primary:hover{background:#2580b8}
+.btn-success{background:#1a7a4a;color:#fff}.btn-success:hover{background:#20a060}
+.btn-warning{background:#b87a1a;color:#fff}.btn-warning:hover{background:#d4901a}
+.btn-danger{background:#7a1a1a;color:#fff}.btn-danger:hover{background:#a02020}
+.btn-sm{padding:5px 10px;font-size:0.8rem}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.dashboard{background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;margin-bottom:24px;border:1px solid rgba(255,255,255,0.1)}
+.dashboard h2{font-size:1rem;margin-bottom:12px;color:#7ec8e3}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.dash-item{background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 14px;border-left:4px solid #666;font-size:0.85rem}
+.dash-item.urgent{border-color:#e74c3c;background:rgba(231,76,60,0.1)}
+.dash-item.warning{border-color:#f39c12;background:rgba(243,156,18,0.1)}
+.dash-item.ok{border-color:#2ecc71;background:rgba(46,204,113,0.1)}
+.dash-item .dash-nom{font-weight:700;margin-bottom:4px}
+.dash-item .dash-info{color:#aaa;font-size:0.78rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.card{background:linear-gradient(145deg,#0d2137,#0a1a2e);border-radius:14px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.3);transition:transform 0.2s}
+.card:hover{transform:translateY(-2px)}
+.card-vignette{width:100%;height:160px;object-fit:cover;display:block}
+.card-vignette-placeholder{width:100%;height:120px;background:linear-gradient(135deg,#0d3b6e22,#1a6b9a22);display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:rgba(255,255,255,0.1)}
+.card-header{padding:14px 16px;background:rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card-title{font-size:1.05rem;font-weight:700;color:#7ec8e3}
+.card-litrage{font-size:0.8rem;color:#aaa;margin-top:2px}
+.card-actions{display:flex;gap:6px;flex-shrink:0}
+.card-body{padding:14px 16px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.85rem}
+.info-row:last-child{border-bottom:none}
+.info-label{color:#aaa}
+.badge{padding:3px 8px;border-radius:12px;font-size:0.75rem;font-weight:600}
+.badge-ok{background:#1a4a2a;color:#2ecc71}
+.badge-warning{background:#4a3a0a;color:#f39c12}
+.badge-urgent{background:#4a1a1a;color:#e74c3c}
+.section-filtre{margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)}
+.section-filtre h4{font-size:0.8rem;color:#7ec8e3;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.btn-action-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.photos-section{margin-top:12px}
+.photos-section h4{font-size:0.8rem;color:#7ec8e3;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.photos-row{display:flex;gap:6px;flex-wrap:wrap}
+.photo-wrap{position:relative;width:60px;height:60px}
+.photo-thumb{width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color 0.2s;display:block}
+.photo-thumb:hover{border-color:#1a6b9a}
+.photo-thumb.is-vignette{border-color:#f39c12;box-shadow:0 0 6px rgba(243,156,18,0.5)}
+.photo-overlay{position:absolute;inset:0;display:none;flex-direction:column;gap:2px;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);border-radius:6px}
+.photo-wrap:hover .photo-overlay{display:flex}
+.photo-overlay button{background:none;border:none;cursor:pointer;font-size:1rem;line-height:1;padding:2px}
+.add-photo-btn{width:60px;height:60px;border-radius:6px;border:2px dashed rgba(255,255,255,0.2);background:transparent;color:#aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all 0.2s}
+.add-photo-btn:hover{border-color:#1a6b9a;color:#1a6b9a}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:#0d2137;border-radius:14px;padding:24px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border:1px solid rgba(255,255,255,0.1)}
+.modal h2{margin-bottom:20px;color:#7ec8e3;font-size:1.1rem}
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(0,0,0,0.3);padding:4px;border-radius:8px}
+.tab{flex:1;padding:8px;border:none;background:transparent;color:#aaa;cursor:pointer;border-radius:6px;font-size:0.85rem;font-weight:600;transition:all 0.2s}
+.tab.active{background:#1a6b9a;color:#fff}
+.tab-content{display:none}.tab-content.active{display:block}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;margin-bottom:5px;font-size:0.85rem;color:#aaa}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#e0f0ff;font-size:0.9rem}
+.form-group textarea{min-height:80px;resize:vertical}
+.form-group input[type=date]{color-scheme:dark}
+.calc-info{font-size:0.8rem;color:#7ec8e3;margin-top:4px}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:200;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox img{max-width:90vw;max-height:85vh;border-radius:8px;object-fit:contain}
+.lightbox-close{position:absolute;top:16px;right:20px;font-size:2rem;cursor:pointer;color:#fff;background:none;border:none}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:2rem;cursor:pointer;color:#fff;background:rgba(0,0,0,0.4);border:none;padding:8px 14px;border-radius:8px}
+.lightbox-prev{left:10px}.lightbox-next{right:10px}
+#tc{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:10px 16px;border-radius:8px;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,0.4);animation:fadeIn 0.3s}
+.toast.success{background:#1a4a2a;border-left:4px solid #2ecc71;color:#e0f0ff}
+.toast.error{background:#4a1a1a;border-left:4px solid #e74c3c;color:#e0f0ff}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.empty{text-align:center;padding:60px 20px;color:#aaa}
+.empty .icon{font-size:3rem;margin-bottom:12px}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.modal{padding:16px}}
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:1.8rem">🐠</span>
+  <h1>AquaManager</h1>
+</header>
+
+<div class="container">
+  <div class="dashboard">
+    <h2>🔔 Alertes &amp; rappels</h2>
+    <div class="dash-grid" id="dashGrid"><div style="color:#aaa;font-size:0.85rem">Chargement...</div></div>
+  </div>
+  <div class="top-bar">
+    <span style="color:#aaa;font-size:0.9rem" id="countLabel"></span>
+    <button class="btn btn-primary" onclick="openModal()">+ Ajouter un aquarium</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none"><div class="icon">🐡</div><p>Aucun aquarium.<br>Ajoutez-en un !</p></div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">Ajouter un aquarium</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('tab1',this)">🐠 Aquarium</button>
+      <button class="tab" onclick="switchTab('tab2',this)">🔧 Filtre</button>
+    </div>
+    <div class="tab-content active" id="tab1">
+      <div class="form-group"><label>Nom *</label><input id="fNom" placeholder="Mon aquarium"></div>
+      <div class="form-group"><label>Litrage (L)</label><input id="fLitrage" type="number" min="0" placeholder="100"></div>
+      <div class="form-group"><label>Description</label><textarea id="fDesc" placeholder="Notes, espèces..."></textarea></div>
+      <div class="form-group"><label>Dernier changement d'eau</label><input id="fDernier" type="date" oninput="calcNext()"></div>
+      <div class="form-group"><label>Intervalle changement (jours)</label><input id="fIntervalle" type="number" min="1" value="7" oninput="calcNext()"></div>
+      <div class="calc-info" id="calcNext"></div>
+    </div>
+    <div class="tab-content" id="tab2">
+      <div class="form-group"><label>Dernier nettoyage du filtre</label><input id="fFiltreDate" type="date" oninput="calcNextFiltre()"></div>
+      <div class="form-group"><label>Intervalle nettoyage (jours)</label><input id="fFiltreIntervalle" type="number" min="1" value="30" oninput="calcNextFiltre()"></div>
+      <div class="calc-info" id="calcNextFiltre"></div>
+      <div class="form-group"><label>Notes filtre</label><textarea id="fFiltreNotes" placeholder="Type de filtre, mousse, charbon..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-danger" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveAquarium()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-nav lightbox-prev" onclick="lbNav(-1)">&#8249;</button>
+  <img id="lbImg" src="" alt="">
+  <button class="lightbox-nav lightbox-next" onclick="lbNav(1)">&#8250;</button>
+</div>
+
+<div id="tc"></div>
+
+<script>
+const API = '/api';
+let aquariums = [];
+let editId = null;
+let lbPhotos = [], lbIdx = 0;
+
+function addDays(dateStr, days) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + parseInt(days));
+  return d.toISOString().split('T')[0];
+}
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr);
+  return Math.round((target - today) / 86400000);
+}
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  const [y,m,d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+function statusBadge(days) {
+  if (days === null) return '<span class="badge" style="background:#333;color:#aaa">—</span>';
+  if (days < 0) return `<span class="badge badge-urgent">Retard ${Math.abs(days)}j</span>`;
+  if (days <= 3) return `<span class="badge badge-warning">Dans ${days}j</span>`;
+  return `<span class="badge badge-ok">Dans ${days}j</span>`;
+}
+function statusClass(days) {
+  if (days === null) return '';
+  if (days < 0) return 'urgent';
+  if (days <= 3) return 'warning';
+  return 'ok';
+}
+
+async function load() {
+  const res = await fetch(`${API}/aquariums`);
+  aquariums = await res.json();
+  render();
+  renderDash();
+}
+
+function renderDash() {
+  const grid = document.getElementById('dashGrid');
+  const items = [];
+  aquariums.forEach(a => {
+    const pc = addDays(a.dernier_changement, a.intervalle_changement);
+    const dc = daysUntil(pc);
+    if (dc !== null && dc <= 5) {
+      items.push({ nom: a.nom, type: '💧 Changement eau', days: dc, cls: statusClass(dc) });
+    }
+    const pf = addDays(a.filtre_dernier_nettoyage, a.filtre_intervalle);
+    const df = daysUntil(pf);
+    if (df !== null && df <= 7) {
+      items.push({ nom: a.nom, type: '🔧 Filtre', days: df, cls: statusClass(df) });
+    }
+  });
+  if (!items.length) {
+    grid.innerHTML = '<div style="color:#2ecc71;font-size:0.85rem">✅ Tout est à jour !</div>';
+    return;
+  }
+  grid.innerHTML = items.map(i => `
+    <div class="dash-item ${i.cls}">
+      <div class="dash-nom">${i.nom}</div>
+      <div class="dash-info">${i.type} — ${i.days < 0 ? 'En retard de '+Math.abs(i.days)+'j' : 'Dans '+i.days+'j'}</div>
+    </div>`).join('');
+}
+
+function render() {
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const count = document.getElementById('countLabel');
+  count.textContent = `${aquariums.length} aquarium${aquariums.length > 1 ? 's' : ''}`;
+  if (!aquariums.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = aquariums.map(a => {
+    const pc = addDays(a.dernier_changement, a.intervalle_changement);
+    const dc = daysUntil(pc);
+    const pf = addDays(a.filtre_dernier_nettoyage, a.filtre_intervalle);
+    const df = daysUntil(pf);
+    return `
+    <div class="card">
+      <div class="card-vignette-placeholder" id="vignette-${a.id}">🐠</div>
+      <div class="card-header">
+        <div>
+          <div class="card-title">🐠 ${a.nom}</div>
+          ${a.litrage ? `<div class="card-litrage">${a.litrage} L</div>` : ''}
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary btn-sm" onclick="openModal('${a.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAquarium('${a.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="card-body">
+        ${a.description ? `<div style="font-size:0.82rem;color:#aaa;margin-bottom:10px">${a.description}</div>` : ''}
+        <div class="info-row">
+          <span class="info-label">💧 Dernier changement</span>
+          <span>${fmtDate(a.dernier_changement)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">📅 Prochain changement</span>
+          ${statusBadge(dc)}
+        </div>
+        <div class="info-row">
+          <span class="info-label">🔄 Intervalle</span>
+          <span>${a.intervalle_changement || 7} jours</span>
+        </div>
+
+        <div class="section-filtre">
+          <h4>🔧 Filtre</h4>
+          <div class="info-row">
+            <span class="info-label">Dernier nettoyage</span>
+            <span>${fmtDate(a.filtre_dernier_nettoyage)}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Prochain nettoyage</span>
+            ${statusBadge(df)}
+          </div>
+          <div class="info-row">
+            <span class="info-label">Intervalle</span>
+            <span>${a.filtre_intervalle || 30} jours</span>
+          </div>
+          ${a.filtre_notes ? `<div style="font-size:0.78rem;color:#aaa;margin-top:6px">${a.filtre_notes}</div>` : ''}
+        </div>
+
+        <div class="btn-action-row">
+          <button class="btn btn-success btn-sm" onclick="doChangement('${a.id}')">💧 Changement fait</button>
+          <button class="btn btn-warning btn-sm" onclick="doNettoyage('${a.id}')">🔧 Filtre nettoyé</button>
+        </div>
+
+        <div class="photos-section">
+          <h4>📷 Photos</h4>
+          <div class="photos-row" id="photos-${a.id}"></div>
+        </div>
+        <input type="file" id="fi-${a.id}" multiple accept="image/*" style="display:none" onchange="uploadPhotos('${a.id}',this)">
+      </div>
+    </div>`;
+  }).join('');
+  aquariums.forEach(a => loadPhotos(a.id));
+}
+
+async function loadPhotos(id) {
+  const res = await fetch(`${API}/aquariums/${id}/photos`);
+  const photos = await res.json();
+  const row = document.getElementById(`photos-${id}`);
+  if (!row) return;
+  row._photos = photos;
+
+  // Vignette en haut de la carte
+  const vigEl = document.getElementById(`vignette-${id}`);
+  const vignette = photos.find(p => p.is_vignette);
+  if (vigEl) {
+    if (vignette) {
+      vigEl.outerHTML = `<img class="card-vignette" id="vignette-${id}" src="/uploads/${vignette.filename}" alt="vignette" onclick="openLightbox('${id}','${vignette.filename}')">`;
+    } else {
+      vigEl.innerHTML = '🐠';
+    }
+  }
+
+  row.innerHTML = photos.map(p => `
+    <div class="photo-wrap">
+      <img class="photo-thumb${p.is_vignette ? ' is-vignette' : ''}" src="/uploads/${p.filename}" onclick="openLightbox('${id}','${p.filename}')">
+      <div class="photo-overlay">
+        <button title="Définir comme vignette" onclick="setVignette('${p.id}','${id}')">⭐</button>
+        <button title="Supprimer" onclick="deletePhoto('${p.id}','${id}')">🗑️</button>
+      </div>
+    </div>`
+  ).join('');
+  row.innerHTML += `<button class="add-photo-btn" onclick="document.getElementById('fi-${id}').click()" title="Ajouter photo">+</button>`;
+}
+
+async function setVignette(photoId, aquId) {
+  const res = await fetch(`${API}/photos/${photoId}/vignette`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ aquarium_id: aquId })
+  });
+  if (res.ok) { toast('Vignette définie !', 'success'); loadPhotos(aquId); }
+  else toast('Erreur','error');
+}
+
+async function deletePhoto(photoId, aquId) {
+  if (!confirm('Supprimer cette photo ?')) return;
+  const res = await fetch(`${API}/photos/${photoId}`, { method: 'DELETE' });
+  if (res.ok) { toast('Photo supprimée','success'); loadPhotos(aquId); }
+  else toast('Erreur','error');
+}
+
+async function uploadPhotos(id, input) {
+  const fd = new FormData();
+  Array.from(input.files).forEach(f => fd.append('photos', f));
+  const res = await fetch(`${API}/aquariums/${id}/photos`, { method: 'POST', body: fd });
+  if (res.ok) { toast('Photos ajoutées','success'); loadPhotos(id); }
+  else toast('Erreur upload','error');
+  input.value = '';
+}
+
+function openLightbox(aquId, filename) {
+  const row = document.getElementById(`photos-${aquId}`);
+  lbPhotos = row._photos || [];
+  lbIdx = lbPhotos.findIndex(p => p.filename === filename);
+  document.getElementById('lbImg').src = `/uploads/${filename}`;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+function lbNav(dir) {
+  lbIdx = (lbIdx + dir + lbPhotos.length) % lbPhotos.length;
+  document.getElementById('lbImg').src = `/uploads/${lbPhotos[lbIdx].filename}`;
+}
+
+async function doChangement(id) {
+  const res = await fetch(`${API}/aquariums/${id}/changement`, { method: 'POST' });
+  if (res.ok) {
+    const a = await res.json();
+    aquariums = aquariums.map(x => x.id === id ? a : x);
+    render(); renderDash();
+    toast('Changement d\'eau enregistré !', 'success');
+  }
+}
+
+async function doNettoyage(id) {
+  const res = await fetch(`${API}/aquariums/${id}/nettoyage`, { method: 'POST' });
+  if (res.ok) {
+    const a = await res.json();
+    aquariums = aquariums.map(x => x.id === id ? a : x);
+    render(); renderDash();
+    toast('Nettoyage filtre enregistré !', 'success');
+  }
+}
+
+async function deleteAquarium(id) {
+  if (!confirm('Supprimer cet aquarium ?')) return;
+  const res = await fetch(`${API}/aquariums/${id}`, { method: 'DELETE' });
+  if (res.ok) { aquariums = aquariums.filter(a => a.id !== id); render(); renderDash(); toast('Supprimé','success'); }
+}
+
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Modifier l\'aquarium' : 'Ajouter un aquarium';
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab1').classList.add('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  if (id) {
+    const a = aquariums.find(x => x.id === id);
+    document.getElementById('fNom').value = a.nom || '';
+    document.getElementById('fLitrage').value = a.litrage || '';
+    document.getElementById('fDesc').value = a.description || '';
+    document.getElementById('fDernier').value = a.dernier_changement || '';
+    document.getElementById('fIntervalle').value = a.intervalle_changement || 7;
+    document.getElementById('fFiltreDate').value = a.filtre_dernier_nettoyage || '';
+    document.getElementById('fFiltreIntervalle').value = a.filtre_intervalle || 30;
+    document.getElementById('fFiltreNotes').value = a.filtre_notes || '';
+  } else {
+    document.getElementById('fNom').value = '';
+    document.getElementById('fLitrage').value = '';
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fDernier').value = '';
+    document.getElementById('fIntervalle').value = 7;
+    document.getElementById('fFiltreDate').value = '';
+    document.getElementById('fFiltreIntervalle').value = 30;
+    document.getElementById('fFiltreNotes').value = '';
+  }
+  calcNext(); calcNextFiltre();
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  editId = null;
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+function calcNext() {
+  const d = document.getElementById('fDernier').value;
+  const i = document.getElementById('fIntervalle').value;
+  const el = document.getElementById('calcNext');
+  if (d && i) {
+    const next = addDays(d, i);
+    const days = daysUntil(next);
+    el.textContent = `Prochain : ${fmtDate(next)} (${days < 0 ? 'retard de '+Math.abs(days)+'j' : 'dans '+days+'j'})`;
+  } else el.textContent = '';
+}
+
+function calcNextFiltre() {
+  const d = document.getElementById('fFiltreDate').value;
+  const i = document.getElementById('fFiltreIntervalle').value;
+  const el = document.getElementById('calcNextFiltre');
+  if (d && i) {
+    const next = addDays(d, i);
+    const days = daysUntil(next);
+    el.textContent = `Prochain : ${fmtDate(next)} (${days < 0 ? 'retard de '+Math.abs(days)+'j' : 'dans '+days+'j'})`;
+  } else el.textContent = '';
+}
+
+async function saveAquarium() {
+  const nom = document.getElementById('fNom').value.trim();
+  if (!nom) { toast('Le nom est obligatoire','error'); return; }
+  const body = {
+    nom,
+    litrage: document.getElementById('fLitrage').value || null,
+    description: document.getElementById('fDesc').value,
+    dernier_changement: document.getElementById('fDernier').value || null,
+    intervalle_changement: document.getElementById('fIntervalle').value || 7,
+    filtre_dernier_nettoyage: document.getElementById('fFiltreDate').value || null,
+    filtre_intervalle: document.getElementById('fFiltreIntervalle').value || 30,
+    filtre_notes: document.getElementById('fFiltreNotes').value
+  };
+  const url = editId ? `${API}/aquariums/${editId}` : `${API}/aquariums`;
+  const method = editId ? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (res.ok) {
+    const a = await res.json();
+    if (editId) aquariums = aquariums.map(x => x.id === editId ? a : x);
+    else aquariums.unshift(a);
+    closeModal(); render(); renderDash();
+    toast(editId ? 'Modifié !' : 'Aquarium ajouté !', 'success');
+  } else toast('Erreur lors de la sauvegarde','error');
+}
+
+function toast(msg, type='success') {
+  const tc = document.getElementById('tc');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  tc.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+
+load();
+async function testNotification() {
+  try {
+    const r = await fetch("/api/notify/test", {method:"POST"});
+    const d = await r.json();
+    if(d.success) toast("✅ " + d.message, "success");
+    else toast("❌ " + d.error, "error");
+  } catch(e) { toast("❌ Erreur: " + e.message, "error"); }
+}
+</script>
+</body>
+</html>
