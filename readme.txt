@@ -1,4 +1,3 @@
-Script d'installation automatique
+AquaManager
 
-bash <(curl -s https://raw.githubusercontent.com/calimeroweb26/AquaManager/main/install.sh)
-
+Gestion des changements d'eau et des nettoyages de filtre pour mes aquariums
