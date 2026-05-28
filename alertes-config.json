@@ -1,0 +1,18 @@
+{
+  "ntfy": {
+    "url": "https://ntfy.calimeroweb.fr",
+    "topic": "aquamanager-alertes",
+    "token": ""
+  },
+  "verification": {
+    "heure": "08:00",
+    "intervalle_minutes": 0
+  },
+  "alertes": {
+    "changement_eau_due_aujourd_hui": true,
+    "changement_eau_en_retard": true,
+    "filtre_due_aujourd_hui": true,
+    "filtre_en_retard": true,
+    "rappel_retard_tous_les_jours": true
+  }
+}
