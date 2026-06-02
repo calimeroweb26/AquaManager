@@ -2,15 +2,11 @@
 
 const https = require('https');
 const fs = require('fs');
-const path = require('path');
-const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
 
 const configPath = '/opt/aquamanager/alertes-config.json';
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://aquauser:aquapass@localhost:5432/aquamanager'
-});
+const DB_FILE = '/opt/aquamanager/data/aqua.db';
 
 function envoyerNotification(titre, message, priorite = 'default') {
   return new Promise((resolve, reject) => {
@@ -18,7 +14,7 @@ function envoyerNotification(titre, message, priorite = 'default') {
     const body = Buffer.from(message, 'utf8');
     const headers = {
       'Content-Length': body.length,
-      'Title': Buffer.from(titre).toString('ascii').replace(/[^ -~]/g, ''),
+      'Title': titre.replace(/[^ -~]/g, ''),
       'Priority': priorite,
       'Tags': 'fish'
     };
@@ -31,8 +27,7 @@ function envoyerNotification(titre, message, priorite = 'default') {
       method: 'POST',
       headers
     }, (res) => {
-      let data = '';
-      res.on('data', d => data += d);
+      res.on('data', () => {});
       res.on('end', () => {
         console.log(`✓ Notification envoyée: ${titre} (${res.statusCode})`);
         resolve(res.statusCode);
@@ -44,38 +39,67 @@ function envoyerNotification(titre, message, priorite = 'default') {
   });
 }
 
+function dbAll(db, sql, params) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows));
+  });
+}
+
 async function verifierAlertes() {
   console.log('Vérification des alertes...');
-  const aujourd_hui = new Date().toISOString().split('T')[0];
-  
-  try {
-    // Changements d'eau en retard
-    const retardEau = await pool.query(`
-      SELECT a.nom, a.id,
-        (SELECT MAX(ce.date_changement) FROM changements_eau ce WHERE ce.aquarium_id = a.id) as derniere_date,
-        a.frequence_changement_eau
-      FROM aquariums a
-      WHERE a.actif = true
-      AND a.frequence_changement_eau IS NOT NULL
-    `);
+  const aujourd_hui = new Date();
+  aujourd_hui.setHours(0,0,0,0);
+  const db = new sqlite3.Database(DB_FILE);
 
-    for (const row of retardEau.rows) {
-      if (!row.derniere_date) continue;
-      const derniere = new Date(row.derniere_date);
+  try {
+    // Vérification changements d'eau
+    const aquariums = await dbAll(db, `
+      SELECT id, nom, dernier_changement, intervalle_changement
+      FROM aquariums
+      WHERE dernier_changement IS NOT NULL AND intervalle_changement IS NOT NULL
+    `, []);
+
+    for (const row of aquariums) {
+      const derniere = new Date(row.dernier_changement);
+      derniere.setHours(0,0,0,0);
       const prochaine = new Date(derniere);
-      prochaine.setDate(prochaine.getDate() + row.frequence_changement_eau);
-      const diff = Math.floor((new Date(aujourd_hui) - prochaine) / 86400000);
-      
+      prochaine.setDate(prochaine.getDate() + row.intervalle_changement);
+      const diff = Math.floor((aujourd_hui - prochaine) / 86400000);
+
       if (diff === 0 && config.alertes.changement_eau_due_aujourd_hui) {
         await envoyerNotification(
-          `💧 Changement d'eau - ${row.nom}`,
-          `Le changement d'eau de l'aquarium "${row.nom}" est prévu aujourd'hui.`,
+          `Changement eau - ${row.nom}`,
+          `Le changement d'eau de "${row.nom}" est prévu aujourd'hui.`,
           'default'
         );
       } else if (diff > 0 && config.alertes.changement_eau_en_retard) {
         await envoyerNotification(
-          `⚠️ Retard changement d'eau - ${row.nom}`,
-          `Le changement d'eau de l'aquarium "${row.nom}" est en retard de ${diff} jour(s).`,
+          `Retard changement eau - ${row.nom}`,
+          `Le changement d'eau de "${row.nom}" est en retard de ${diff} jour(s).`,
+          'high'
+        );
+      }
+    }
+
+    // Vérification nettoyage filtre
+    for (const row of aquariums) {
+      if (!row.filtre_dernier_nettoyage || !row.filtre_intervalle) continue;
+      const derniere = new Date(row.filtre_dernier_nettoyage);
+      derniere.setHours(0,0,0,0);
+      const prochaine = new Date(derniere);
+      prochaine.setDate(prochaine.getDate() + row.filtre_intervalle);
+      const diff = Math.floor((aujourd_hui - prochaine) / 86400000);
+
+      if (diff === 0 && config.alertes.filtre_aujourd_hui) {
+        await envoyerNotification(
+          `Nettoyage filtre - ${row.nom}`,
+          `Le nettoyage du filtre de "${row.nom}" est prévu aujourd'hui.`,
+          'default'
+        );
+      } else if (diff > 0 && config.alertes.filtre_en_retard) {
+        await envoyerNotification(
+          `Retard filtre - ${row.nom}`,
+          `Le nettoyage du filtre de "${row.nom}" est en retard de ${diff} jour(s).`,
           'high'
         );
       }
@@ -85,14 +109,14 @@ async function verifierAlertes() {
   } catch (err) {
     console.error('Erreur DB:', err.message);
   } finally {
-    await pool.end();
+    db.close();
   }
 }
 
 async function testNotification() {
   console.log('Envoi notification de test...');
   await envoyerNotification(
-    '🐟 AquaManager - Test',
+    'AquaManager - Test',
     'Les notifications AquaManager fonctionnent correctement !',
     'default'
   );
